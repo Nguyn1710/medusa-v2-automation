@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Medusa Admin Auth Suite" verbose="1" parallel="false">
+
+    <!-- ===== SMOKE SUITE ===== -->
+    <test name="Smoke Tests">
+        <groups>
+            <run>
+                <include name="smoke"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.medusa.automation.tests.LoginTest"/>
+            <class name="com.medusa.automation.tests.SessionManagementTest"/>
+        </classes>
+    </test>
+
+    <!-- ===== REGRESSION SUITE ===== -->
+    <test name="Regression Tests">
+        <groups>
+            <run>
+                <include name="regression"/>
+                <exclude name="knownBug"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.medusa.automation.tests.LoginTest"/>
+            <class name="com.medusa.automation.tests.ResetPasswordTest"/>
+            <class name="com.medusa.automation.tests.SessionManagementTest"/>
+        </classes>
+    </test>
+
+    <!-- ===== KNOWN BUG SUITE (riêng biệt, Expected FAIL) ===== -->
+    <test name="Known Bug Tests (Expected FAIL — App Bugs)">
+        <groups>
+            <run>
+                <include name="knownBug"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.medusa.automation.tests.LoginTest"/>
+            <class name="com.medusa.automation.tests.ResetPasswordTest"/>
+            <class name="com.medusa.automation.tests.SessionManagementTest"/>
+        </classes>
+    </test>
+
+</suite>

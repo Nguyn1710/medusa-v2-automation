@@ -1,0 +1,44 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd" >
+
+<suite name="StoreFront Test Suite" verbose="1" parallel="false">
+
+    <parameter name="browser" value="chrome"/>
+
+    <!-- ── SMOKE: Tests chạy nhanh, verify core functionality ── -->
+    <test name="SF Smoke Tests" groups="smoke">
+        <groups>
+            <run>
+                <include name="smoke"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.medusa.automation.tests.StoreFrontHomeTest"/>
+            <class name="com.medusa.automation.tests.StoreFrontStoreTest"/>
+            <class name="com.medusa.automation.tests.StoreFrontProductTest"/>
+            <class name="com.medusa.automation.tests.StoreFrontCartTest"/>
+            <class name="com.medusa.automation.tests.StoreFrontCheckoutTest"/>
+            <class name="com.medusa.automation.tests.StoreFrontAccountTest"/>
+            <class name="com.medusa.automation.tests.StoreFrontSearchTest"/>
+        </classes>
+    </test>
+
+    <!-- ── REGRESSION: Toàn bộ test cases ── -->
+    <test name="SF Regression Tests" groups="regression">
+        <groups>
+            <run>
+                <include name="regression"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.medusa.automation.tests.StoreFrontHomeTest"/>
+            <class name="com.medusa.automation.tests.StoreFrontStoreTest"/>
+            <class name="com.medusa.automation.tests.StoreFrontProductTest"/>
+            <class name="com.medusa.automation.tests.StoreFrontCartTest"/>
+            <class name="com.medusa.automation.tests.StoreFrontCheckoutTest"/>
+            <class name="com.medusa.automation.tests.StoreFrontAccountTest"/>
+            <class name="com.medusa.automation.tests.StoreFrontSearchTest"/>
+            <class name="com.medusa.automation.tests.StoreFrontSecurityTest"/>
+        </classes>
+    </test>
+
+</suite>

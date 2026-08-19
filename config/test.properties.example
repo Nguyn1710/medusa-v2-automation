@@ -1,0 +1,34 @@
+# ========================================================
+# Medusa Admin Automation — Test Configuration
+# ========================================================
+# HƯỚNG DẪN: Copy file này thành config/test.properties
+# rồi điền giá trị thật vào. File test.properties đã nằm
+# trong .gitignore — sẽ KHÔNG bị push lên GitHub.
+
+# Application — Admin Portal
+base.url=https://your-medusa-backend-url.com
+
+# StoreFront Application
+storefront.url=https://your-storefront-url.com
+storefront.base.path=/gb
+
+# Admin credentials
+admin.email=your_admin_email@example.com
+admin.password=your_admin_password_here
+
+# StoreFront customer credentials
+storefront.customer.email=your_customer_email@example.com
+storefront.customer.password=your_customer_password_here
+
+# Browser config
+browser=chrome
+headless=false
+
+# Timeouts (seconds)
+implicit.wait=0
+explicit.wait=15
+page.load.timeout=30
+
+# Screenshot
+screenshot.on.fail=true
+screenshot.dir=target/screenshots
