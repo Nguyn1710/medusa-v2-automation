@@ -12,6 +12,8 @@
         <classes>
             <class name="com.medusa.automation.tests.LoginTest"/>
             <class name="com.medusa.automation.tests.SessionManagementTest"/>
+            <class name="com.medusa.automation.tests.AdminProductTest"/>
+            <class name="com.medusa.automation.tests.AdminOrderTest"/>
         </classes>
     </test>
 
@@ -27,6 +29,8 @@
             <class name="com.medusa.automation.tests.LoginTest"/>
             <class name="com.medusa.automation.tests.ResetPasswordTest"/>
             <class name="com.medusa.automation.tests.SessionManagementTest"/>
+            <class name="com.medusa.automation.tests.AdminProductTest"/>
+            <class name="com.medusa.automation.tests.AdminOrderTest"/>
         </classes>
     </test>
 
