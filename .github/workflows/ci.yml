@@ -52,7 +52,7 @@ jobs:
       # Dùng đúng version Java 11 như khai báo trong pom.xml
       # temurin = Eclipse Adoptium (phổ biến nhất cho CI)
       - name: Setup JDK 11
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '11'
           distribution: 'temurin'
@@ -65,7 +65,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       # ----------------------------------------------------------
       # STEP 4: Cài Chrome (headed mode không dùng nhưng cần binary)

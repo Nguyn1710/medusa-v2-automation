@@ -1,271 +1,441 @@
-# 🧪 Medusa v2 Automation Framework
+<p align="center">
+  <img src="https://img.shields.io/badge/Java-11-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 11"/>
+  <img src="https://img.shields.io/badge/Selenium-4.23-43B02A?style=for-the-badge&logo=selenium&logoColor=white" alt="Selenium"/>
+  <img src="https://img.shields.io/badge/REST%20Assured-5.4-4CAF50?style=for-the-badge" alt="REST Assured"/>
+  <img src="https://img.shields.io/badge/TestNG-7.10-DC382D?style=for-the-badge" alt="TestNG"/>
+  <img src="https://img.shields.io/badge/Allure-2.28-FF6600?style=for-the-badge" alt="Allure"/>
+  <img src="https://img.shields.io/badge/Newman-Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white" alt="Newman"/>
+</p>
 
-[![CI — Automation Tests](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/ci.yml)
-[![Allure Report](https://img.shields.io/badge/Allure-Report-orange?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0tMSAxNEg5VjhIMTF2OHptNSAwSDEzdi00aDN2NHptMC02SDEzVjhIMTd2MnoiLz48L3N2Zz4=)](https://YOUR_USERNAME.github.io/YOUR_REPO/)
-[![Java](https://img.shields.io/badge/Java-11-orange?logo=openjdk)](https://openjdk.org/projects/jdk/11/)
-[![Selenium](https://img.shields.io/badge/Selenium-4.23-43B02A?logo=selenium)](https://www.selenium.dev/)
-[![TestNG](https://img.shields.io/badge/TestNG-7.10-red)](https://testng.org/)
-[![Allure](https://img.shields.io/badge/Allure-2.28-orange)](https://allurereport.org/)
+# 🧪 Medusa v2 — E-Commerce Test Automation Framework
 
-> ⚠️ **Thay `YOUR_USERNAME/YOUR_REPO`** trong các badge phía trên bằng GitHub username/repo thực của bạn sau khi push lên GitHub.
+[![CI — Automation Tests](https://github.com/Nguyn1710/medusa-v2-automation/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Nguyn1710/medusa-v2-automation/actions/workflows/ci.yml)
+[![Allure Report](https://img.shields.io/badge/📊_Allure_Report-Live-green?style=flat-square)](https://nguyn1710.github.io/medusa-v2-automation/)
+[![README — Tiếng Việt](https://img.shields.io/badge/README-Tiếng_Việt-red?style=flat-square)](./README_VI.md)
 
-> **Automation test suite cho Medusa v2 E-Commerce Platform**  
-> Java 11 · Selenium 4.23 · REST Assured 5.4 · TestNG 7.10 · Allure Report 2.28 · Newman
-
----
-
-
-## 📌 Tổng Quan
-
-Framework này tự động kiểm thử toàn bộ **Medusa v2 REST API** bao gồm Storefront API và Admin API, bao phủ các scenario: Happy Path, Negative, Boundary, Security và Performance SLA.
-
-| Tầng | Endpoints | Test Classes | Test Cases |
-|---|---|---|---|
-| **Storefront Auth** | `POST /auth/customer/emailpass/*` | `StorefrontAuthApiTest` | 11 TCs |
-| **Storefront Cart** | `POST/GET /store/carts/*` | `StorefrontCartApiTest` | 10 TCs |
-| **Storefront Orders** | `GET /store/orders/*` | `StorefrontOrderApiTest` | 9 TCs |
-| **Admin Auth** | `POST /auth/user/emailpass` | `AdminAuthApiTest` | 6 TCs |
-| **Admin Orders** | `GET /admin/orders/*` | `AdminOrderApiTest` | 10 TCs |
-| **Admin Products** | `GET /admin/products/*` | `AdminProductApiTest` | 9 TCs |
-| **TOTAL** | — | **6 test classes** | **55 TCs** |
+> **End-to-end test automation framework** for [Medusa v2](https://medusajs.com/) — an open-source headless e-commerce platform.  
+> Covers **Admin Dashboard (UI)**, **Storefront (UI)**, and **REST API** testing with full CI/CD integration.
 
 ---
 
-## 🏗️ Kiến Trúc (Architecture)
+## 📌 Project Overview
+
+This project demonstrates a **production-grade automation testing framework** built from scratch for a real e-commerce platform. It covers the full testing pyramid — from API contract validation to end-to-end UI flows.
+
+### What This Project Covers
+
+| Testing Layer | Tool | Description |
+|:---:|:---:|---|
+| 🔌 **API Testing** | REST Assured | Admin & Storefront REST API validation |
+| 🖥️ **UI Testing — Admin** | Selenium WebDriver | Admin Dashboard — Login, Products, Orders |
+| 🛒 **UI Testing — Storefront** | Selenium WebDriver | Customer-facing — Browse, Cart, Checkout |
+| 📮 **API Collection** | Newman (Postman) | Postman collection for API smoke tests |
+| 📊 **Reporting** | Allure Report | Consolidated HTML report with screenshots |
+| ⚙️ **CI/CD** | GitHub Actions | Automated pipeline → Allure on GitHub Pages |
+
+### Test Coverage at a Glance
 
 ```
-selenium-java/
-├── src/main/java/com/medusa/automation/
-│   ├── api/
-│   │   ├── base/
-│   │   │   ├── BaseApiClient.java       # Base class: auth helpers, logging
-│   │   │   └── ApiConstants.java        # HTTP status codes, endpoint paths
-│   │   ├── storefront/
-│   │   │   ├── StorefrontAuthApi.java   # Register, Login, Reset Password
-│   │   │   ├── StorefrontCartApi.java   # Cart CRUD, Line Items, Shipping
-│   │   │   └── StorefrontOrderApi.java  # Order List, Order Detail
-│   │   ├── admin/
-│   │   │   ├── AdminAuthApi.java        # Admin Login
-│   │   │   ├── AdminOrderApi.java       # Admin Order List + Detail
-│   │   │   ├── AdminProductApi.java     # Admin Product List + Detail
-│   │   │   └── AdminCustomerApi.java    # Admin Customer List + Detail
-│   │   └── utils/
-│   │       └── ApiTestDataGenerator.java  # Unique test data generator
-│   ├── config/
-│   │   └── ConfigReader.java            # Reads test.properties
-│   └── ...
+┌──────────────────────────────────────────────────────┐
+│                 🧪 TOTAL: 163 Test Cases              │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│  🔌 API Tests (REST Assured)         66 tests        │
+│  ├─ Storefront API (Auth/Cart/Order) 30 tests        │
+│  └─ Admin API (Auth/CRUD)            36 tests        │
+│                                                      │
+│  🖥️  Admin UI Tests (Selenium)        42 tests        │
+│  ├─ Login & Auth                     18 tests        │
+│  ├─ Session Management                7 tests        │
+│  ├─ Reset Password                    4 tests        │
+│  ├─ Products Management               4 tests        │
+│  └─ Orders Management                 9 tests        │
+│                                                      │
+│  🛒 Storefront UI Tests (Selenium)   55 tests        │
+│  ├─ Home Page                         6 tests        │
+│  ├─ Store Browse                      5 tests        │
+│  ├─ Product Detail                    8 tests        │
+│  ├─ Cart                              5 tests        │
+│  ├─ Checkout                         11 tests        │
+│  ├─ Search                            5 tests        │
+│  ├─ Account Management                6 tests        │
+│  ├─ Security                          4 tests        │
+│  └─ Store Selector                    5 tests        │
+│                                                      │
+└──────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🏗️ Architecture
+
+### Project Structure
+
+```
+medusa-v2-automation/
 │
-├── src/test/java/com/medusa/automation/
-│   ├── base/
-│   │   └── BaseApiTest.java             # Suite setup, token management
-│   └── tests/api/
-│       ├── storefront/
-│       │   ├── StorefrontAuthApiTest.java
-│       │   ├── StorefrontCartApiTest.java
-│       │   └── StorefrontOrderApiTest.java
-│       └── admin/
-│           ├── AdminAuthApiTest.java
-│           ├── AdminOrderApiTest.java
-│           └── AdminProductApiTest.java
+├── src/main/java/com/medusa/automation/
+│   ├── api/                         # 🔌 API Client Layer
+│   │   ├── base/
+│   │   │   ├── BaseApiClient.java   #    Base: auth helpers, request logging
+│   │   │   └── ApiConstants.java    #    HTTP codes, endpoint paths, SLA
+│   │   ├── admin/
+│   │   │   ├── AdminAuthApi.java    #    Admin authentication
+│   │   │   ├── AdminOrderApi.java   #    Order CRUD operations
+│   │   │   ├── AdminProductApi.java #    Product CRUD operations
+│   │   │   └── AdminCustomerApi.java#    Customer management
+│   │   ├── storefront/
+│   │   │   ├── StorefrontAuthApi.java   # Customer auth (register/login)
+│   │   │   ├── StorefrontCartApi.java   # Cart & checkout flow
+│   │   │   └── StorefrontOrderApi.java  # Order history
+│   │   └── utils/
+│   │       └── ApiTestDataGenerator.java# Unique test data generator
+│   │
+│   ├── config/
+│   │   └── ConfigReader.java        # ⚙️ Centralized config management
+│   │
+│   ├── drivers/
+│   │   └── DriverFactory.java       # 🌐 Browser factory (Chrome, headless)
+│   │
+│   ├── pages/                       # 📄 Page Object Model (POM)
+│   │   ├── BasePage.java            #    Base: waits, common actions
+│   │   ├── LoginPage.java           #    Admin login page
+│   │   ├── DashboardPage.java       #    Admin dashboard
+│   │   ├── ResetPasswordPage.java   #    Password reset flow
+│   │   ├── AdminOrderListPage.java  #    Order list & filters
+│   │   ├── AdminDraftOrderPage.java #    Draft order creation
+│   │   ├── AdminProductListPage.java#    Product list & search
+│   │   ├── AdminProductCreateDrawer.java # Product creation drawer
+│   │   ├── StoreFrontHomePage.java   #    Storefront landing page
+│   │   ├── StoreFrontStorePage.java  #    Store/region selector
+│   │   ├── StoreFrontProductPage.java#   Product detail page
+│   │   ├── StoreFrontCartPage.java  #    Shopping cart
+│   │   ├── StoreFrontCheckoutPage.java # Checkout flow
+│   │   ├── StoreFrontAccountPage.java#   Customer account
+│   │   └── StoreFrontSearchPage.java#    Search functionality
+│   │
+│   └── utils/
+│       ├── ScreenshotUtil.java      # 📸 Auto-screenshot on failure
+│       └── TestDataGenerator.java   # 🎲 Unique test data
+│
+├── src/test/java/com/medusa/automation/tests/
+│   ├── LoginTest.java               # 🔑 18 test cases
+│   ├── SessionManagementTest.java   # 🔒 7 test cases
+│   ├── ResetPasswordTest.java       # 🔄 4 test cases
+│   ├── AdminProductTest.java        # 📦 4 test cases
+│   ├── AdminOrderTest.java          # 📋 9 test cases
+│   ├── StoreFrontHomeTest.java      # 🏠 6 test cases
+│   ├── StoreFrontStoreTest.java     # 🏪 5 test cases
+│   ├── StoreFrontProductTest.java   # 🛍️ 8 test cases
+│   ├── StoreFrontCartTest.java      # 🛒 5 test cases
+│   ├── StoreFrontCheckoutTest.java  # 💳 11 test cases
+│   ├── StoreFrontAccountTest.java   # 👤 6 test cases
+│   ├── StoreFrontSearchTest.java    # 🔍 5 test cases
+│   ├── StoreFrontSecurityTest.java  # 🛡️ 4 test cases
+│   └── api/
+│       ├── admin/
+│       │   ├── AdminAuthApiTest.java      # 6 test cases
+│       │   ├── AdminCustomerApiTest.java  # 11 test cases
+│       │   ├── AdminOrderApiTest.java     # 10 test cases
+│       │   └── AdminProductApiTest.java   # 9 test cases
+│       └── storefront/
+│           ├── StorefrontAuthApiTest.java  # 11 test cases
+│           ├── StorefrontCartApiTest.java  # 10 test cases
+│           └── StorefrontOrderApiTest.java # 9 test cases
 │
 ├── config/
-│   └── test.properties                  # Base URLs, credentials, timeouts
+│   └── test.properties.example      # ⚙️ Config template (no credentials)
 │
-├── testng-api.xml                       # API test suite (separate từ UI tests)
-└── pom.xml                              # Maven dependencies
+├── postman_collection.json          # 📮 Postman API collection (Newman)
+├── testng.xml                       # Admin UI test suite
+├── testng-storefront.xml            # Storefront UI test suite
+├── testng-api.xml                   # API test suite (parallel execution)
+├── pom.xml                          # Maven build configuration
+└── .github/workflows/ci.yml        # ⚙️ CI/CD Pipeline
 ```
 
-### Layered Design
+### Design Patterns
 
 ```
-[Test Class] → [API Client] → [BaseApiClient] → [REST API]
-     ↑               ↑               ↑
-  Assertions    Endpoint methods  Auth headers, Logging
+┌─────────────────────────────────────────────────────────────────┐
+│                      Test Execution Layer                       │
+│  LoginTest · StoreFrontCartTest · AdminOrderApiTest · ...       │
+├─────────────────────────────────────────────────────────────────┤
+│              Page Object / API Client Layer                     │
+│  LoginPage · StoreFrontCartPage · AdminOrderApi · ...           │
+├─────────────────────────────────────────────────────────────────┤
+│                   Infrastructure Layer                          │
+│  BasePage · BaseApiClient · DriverFactory · ConfigReader        │
+├─────────────────────────────────────────────────────────────────┤
+│                    Utility & Config Layer                       │
+│  ScreenshotUtil · TestDataGenerator · test.properties           │
+└─────────────────────────────────────────────────────────────────┘
 ```
+
+| Pattern | Where | Purpose |
+|---|---|---|
+| **Page Object Model (POM)** | `pages/` | Separates UI locators from test logic |
+| **Factory Pattern** | `DriverFactory` | Browser instance creation |
+| **Singleton Config** | `ConfigReader` | Centralized configuration |
+| **Builder Pattern** | API Clients | Fluent request construction |
+| **Data Generator** | `TestDataGenerator` | Unique, traceable test data |
 
 ---
 
-## 🚀 Chạy Tests
+## 🚀 Getting Started
 
-### Điều kiện tiên quyết
+### Prerequisites
 
-- Java 11+
-- Maven 3.8+
-- Kết nối đến Medusa backend (URL cấu hình trong `config/test.properties`)
+- **Java 11+** (JDK)
+- **Maven 3.8+**
+- **Google Chrome** (for UI tests)
+- **Node.js 22+** (for Newman/Postman tests)
+- Access to a running Medusa v2 backend
 
-### Cấu hình
+### 1. Clone the Repository
 
-Sao chép và chỉnh sửa file config:
+```bash
+git clone https://github.com/Nguyn1710/medusa-v2-automation.git
+cd medusa-v2-automation
+```
+
+### 2. Configure Environment
+
+```bash
+# Copy the example config
+cp config/test.properties.example config/test.properties
+
+# Edit with your actual values
+```
 
 ```properties
 # config/test.properties
-api.base.url=https://your-medusa-backend.up.railway.app
-api.publishable.key=pk_your_publishable_key
+base.url=https://your-medusa-admin.up.railway.app
+storefront.url=https://your-storefront.vercel.app
 admin.email=admin@example.com
-admin.password=your_admin_password
+admin.password=your_password
 storefront.customer.email=customer@example.com
-storefront.customer.password=your_customer_password
+storefront.customer.password=customer_password
+api.base.url=https://your-medusa-backend.up.railway.app
+api.publishable.key=pk_your_key
+browser=chrome
+headless=false
 ```
 
-### Chạy API Test Suite
+### 3. Run Tests
 
 ```bash
-# Chạy toàn bộ API tests
-mvn test -DsuiteFile=testng-api.xml
+# ── Run ALL test suites ──
+mvn test                                    # Default: Admin UI suite
+mvn test -DsuiteFile=testng-api.xml         # API tests only
+mvn test -DsuiteFile=testng-storefront.xml  # Storefront UI tests
 
-# Chạy theo nhóm (group filtering)
-mvn test -DsuiteFile=testng-api.xml -Dgroups=positive
-mvn test -DsuiteFile=testng-api.xml -Dgroups=negative
-mvn test -DsuiteFile=testng-api.xml -Dgroups=admin
+# ── Run by Group ──
+mvn test -Dgroups=smoke                     # Smoke tests only
+mvn test -Dgroups=regression                # Full regression
 
-# Chạy 1 test class cụ thể
-mvn test -Dtest=StorefrontAuthApiTest
+# ── Run a Single Test Class ──
+mvn test -Dtest=LoginTest
+mvn test -Dtest=StorefrontCartApiTest
 
-# Chạy song song (đã cấu hình trong testng-api.xml)
-# thread-count=2, parallel=classes
-```
-
-### Xem Allure Report
-
-```bash
-# Generate và mở report
-mvn allure:report
-mvn allure:serve
+# ── Generate Allure Report ──
+mvn allure:serve                            # Opens in browser
 ```
 
 ---
 
-## 📊 Test Coverage
+## 📊 Test Types & Coverage
 
-### Test Types
+### Test Categories
 
-| Loại | Mô tả | Ví dụ |
-|---|---|---|
-| ✅ Happy Path | Request hợp lệ → response đúng schema + status | Login thành công → 200 + token |
-| ❌ Negative | Input sai → error response phù hợp | Login sai password → 401 |
-| 🔲 Boundary | Giới hạn giá trị | Quantity âm → error |
-| 📄 Pagination | Phân trang | limit=5 → ≤ 5 items |
-| ⚡ Performance | Response time SLA | Response < 5000ms |
-| 🔒 Security | Auth bypass attempt | Call without token → 401 |
+| Type | Icon | Description | Example |
+|---|:---:|---|---|
+| **Happy Path** | ✅ | Valid input → expected result | Login with correct credentials → Dashboard |
+| **Negative** | ❌ | Invalid input → proper error handling | Login with wrong password → Error message |
+| **Boundary** | 🔲 | Edge case values | Cart with quantity 0, max quantity |
+| **Security** | 🔒 | Auth bypass, XSS, injection attempts | Access admin page without login → Redirect |
+| **Performance SLA** | ⚡ | Response time validation | API response < 5000ms |
+| **Pagination** | 📄 | List endpoint pagination | `limit=5` returns ≤ 5 items |
 
-### Authentication Flow
+### API Test Details
+
+| Module | Test Class | Tests | Endpoints |
+|---|---|:---:|---|
+| **Storefront Auth** | `StorefrontAuthApiTest` | 11 | `POST /auth/customer/emailpass/*` |
+| **Storefront Cart** | `StorefrontCartApiTest` | 10 | `POST/GET /store/carts/*` |
+| **Storefront Orders** | `StorefrontOrderApiTest` | 9 | `GET /store/orders/*` |
+| **Admin Auth** | `AdminAuthApiTest` | 6 | `POST /auth/user/emailpass` |
+| **Admin Customers** | `AdminCustomerApiTest` | 11 | `GET /admin/customers/*` |
+| **Admin Orders** | `AdminOrderApiTest` | 10 | `GET /admin/orders/*` |
+| **Admin Products** | `AdminProductApiTest` | 9 | `GET /admin/products/*` |
+
+### UI Test Details
+
+| Module | Test Class | Tests | Key Scenarios |
+|---|---|:---:|---|
+| **Login** | `LoginTest` | 18 | Valid/invalid login, field validation, remember me |
+| **Session** | `SessionManagementTest` | 7 | Token expiry, logout, concurrent sessions |
+| **Reset Password** | `ResetPasswordTest` | 4 | Email validation, reset flow |
+| **Admin Products** | `AdminProductTest` | 4 | Create, list, search products |
+| **Admin Orders** | `AdminOrderTest` | 9 | Order list, filters, draft orders |
+| **SF Home** | `StoreFrontHomeTest` | 6 | Hero section, navigation, featured products |
+| **SF Store** | `StoreFrontStoreTest` | 5 | Region selector, store switcher |
+| **SF Products** | `StoreFrontProductTest` | 8 | Product detail, variants, images |
+| **SF Cart** | `StoreFrontCartTest` | 5 | Add/remove items, quantity update |
+| **SF Checkout** | `StoreFrontCheckoutTest` | 11 | Address, shipping, payment flow |
+| **SF Account** | `StoreFrontAccountTest` | 6 | Profile, order history |
+| **SF Search** | `StoreFrontSearchTest` | 5 | Search, filters, no results |
+| **SF Security** | `StoreFrontSecurityTest` | 4 | Auth guards, protected routes |
+
+---
+
+## ⚙️ CI/CD Pipeline
+
+The project uses **GitHub Actions** for continuous integration. Every push to `main` triggers the full test suite.
+
+### Pipeline Flow
 
 ```
-                    ┌─────────────────┐
-                    │ POST /auth/      │
-                    │ customer/        │
-                    │ emailpass/       │
-                    │ register         │
-                    └────────┬────────┘
-                             │ registration token
-                    ┌────────▼────────┐
-                    │ POST /store/    │
-                    │ customers       │
-                    │ (create profile)│
-                    └────────┬────────┘
-                             │ customer created
-                    ┌────────▼────────┐
-                    │ POST /auth/     │
-                    │ customer/       │
-                    │ emailpass       │
-                    │ (login)         │
-                    └────────┬────────┘
-                             │ JWT token
-                    ┌────────▼────────┐
-                    │ API calls with  │
-                    │ Bearer token    │
-                    └─────────────────┘
+┌──────────┐    ┌──────────┐    ┌───────────┐    ┌───────────┐
+│ Checkout │───▶│ Build    │───▶│ API Tests │───▶│ Admin UI  │
+│ + Setup  │    │ Compile  │    │ (REST     │    │ Tests     │
+│          │    │          │    │  Assured) │    │ (Selenium)│
+└──────────┘    └──────────┘    └───────────┘    └─────┬─────┘
+                                                       │
+┌──────────────┐    ┌──────────┐    ┌───────────┐      │
+│ Deploy Allure│◀───│ Generate │◀───│ Newman    │◀─────┤
+│ → GH Pages   │    │ Report   │    │ (Postman) │      │
+└──────────────┘    └──────────┘    └───────────┘  ┌───▼───────┐
+                                                   │ Storefront│
+                                                   │ UI Tests  │
+                                                   └───────────┘
 ```
 
-### Cart Flow
+### Pipeline Features
 
-```
-Create Cart → Add Line Item → Add Shipping → Complete Checkout
-    ↓              ↓               ↓
-  cartId      items updated    cart ready
-```
+- ✅ **Auto-trigger** on push & pull request to `main`
+- ✅ **Manual dispatch** with suite selection (`all` / `api` / `ui` / `storefront`)
+- ✅ **Allure Report** auto-deployed to GitHub Pages
+- ✅ **Artifacts preserved** — screenshots, surefire reports (14 days)
+- ✅ **Secrets management** — credentials injected via GitHub Secrets
+- ✅ **Headless Chrome** in CI environment
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Tool | Version | Mục đích |
-|---|---|---|
-| **Java** | 11 | Ngôn ngữ |
-| **REST Assured** | 5.4.0 | HTTP client cho API tests |
-| **TestNG** | 7.10.2 | Test framework, parallel execution |
-| **Allure** | 2.28.0 | Test reporting |
-| **Jackson** | 2.17.1 | JSON serialization |
-| **Log4j2** | 2.23.1 | Logging |
-| **Maven Surefire** | 3.3.1 | Build & test runner |
+| Category | Technology | Version | Purpose |
+|---|---|---|---|
+| **Language** | Java | 11 | Core language |
+| **UI Automation** | Selenium WebDriver | 4.23.0 | Browser automation |
+| **Driver Management** | WebDriverManager | 5.9.2 | Auto ChromeDriver setup |
+| **API Testing** | REST Assured | 5.4.0 | HTTP API validation |
+| **API Collection** | Newman (Postman) | Latest | Postman collection runner |
+| **Test Framework** | TestNG | 7.10.2 | Test execution & grouping |
+| **Reporting** | Allure Report | 2.28.0 | Rich HTML reports |
+| **JSON** | Jackson | 2.17.1 | JSON serialization |
+| **Logging** | Log4j2 | 2.23.1 | Structured logging |
+| **Build** | Maven | 3.8+ | Dependency management |
+| **CI/CD** | GitHub Actions | — | Continuous integration |
 
 ---
 
 ## 📋 Test Data Strategy
 
-Test data được sinh tự động bởi `ApiTestDataGenerator`:
+All test data is **dynamically generated** to ensure test isolation and traceability:
 
 ```java
-// Email unique với timestamp — traceable khi debug
+// Unique email with timestamp — traceable to specific test run
 String email = ApiTestDataGenerator.generateCustomerEmail("register");
 // → auto_api_register_1786942625@test.com
 
-// Trace ID để link test với execution
+// Trace ID links test data back to test case
 String traceId = ApiTestDataGenerator.traceId("TC_CART_001");
 // → TC_CART_001_1786942625
 ```
 
-**Nguyên tắc:**
-- Email, username phải unique mỗi lần chạy (timestamp-based)
-- Data traceable — biết test nào tạo data nào
-- Không hardcode email/ID trong test
+**Principles:**
+- ✅ Every test run uses **unique data** (timestamp-based)
+- ✅ Data is **traceable** — can identify which test created which data
+- ✅ **No hardcoded** emails, passwords, or IDs in test code
+- ✅ Tests are **independent** — no shared state between tests
 
 ---
 
-## 📁 Output & Reports
+## 📁 Test Suites
 
-```
-target/
-├── allure-results/           # Raw Allure JSON results
-├── surefire-reports/         # TestNG XML reports
-└── screenshots/              # Screenshots khi test fail (UI tests)
-```
-
----
-
-## 🔧 Cấu Hình Nâng Cao
-
-### Parallel Execution
-
-```xml
-<!-- testng-api.xml -->
-<suite name="Medusa API Test Suite" parallel="classes" thread-count="2">
-```
-
-### Timeouts
-
-```properties
-# config/test.properties
-api.timeout.ms=10000        # HTTP request timeout
-explicit.wait=15            # Selenium wait (UI tests)
-```
-
-### Response Time SLA
-
-Tất cả API tests đều kiểm tra SLA:
-```java
-ApiConstants.MAX_RESPONSE_TIME_MS = 5000L  // 5 giây
-```
+| Suite File | Scope | Parallel | Groups |
+|---|---|---|---|
+| `testng.xml` | Admin UI — Login, Products, Orders | Sequential | `smoke`, `regression`, `knownBug` |
+| `testng-storefront.xml` | Storefront UI — Home to Checkout | Sequential | `smoke`, `regression` |
+| `testng-api.xml` | REST API — All endpoints | Parallel (2 threads) | `api`, `admin`, `storefront` |
+| `postman_collection.json` | Postman API — Smoke tests | Sequential | — |
 
 ---
 
-## 🤝 Conventions
+## 📊 Reporting
 
-- **Naming**: `TC_API_{DOMAIN}_{TYPE}_{NNN}_{description}`
-- **Groups**: `api`, `storefront`/`admin`, `auth`/`cart`/`orders`, `positive`/`negative`
-- **Assertions**: Mỗi assert có error message rõ ràng bằng tiếng Việt/Anh
-- **Logging**: Mỗi TC log kết quả ở cuối: `log.info("TC_XXX PASS | ...")`
+### Allure Report
+
+The consolidated Allure Report includes results from **all test suites** (REST Assured + Selenium + Newman):
+
+- 📈 **Dashboard** — Pass/fail overview, duration trends
+- 📋 **Test Cases** — Grouped by suite, with steps and assertions
+- 📸 **Screenshots** — Auto-captured on UI test failure
+- ⏱️ **Timeline** — Parallel execution visualization
+- 📎 **Attachments** — Request/response logs for API tests
+
+> 🔗 **Live Report**: [https://nguyn1710.github.io/medusa-v2-automation/](https://nguyn1710.github.io/medusa-v2-automation/)
 
 ---
 
-*Automation Framework cho Medusa v2 E-Commerce — Java / REST Assured / TestNG / Allure*
+## 🤝 Key Practices
+
+| Practice | Implementation |
+|---|---|
+| **Page Object Model** | All UI locators isolated in Page classes |
+| **Smart Waits** | `WebDriverWait` + `ExpectedConditions` — no `Thread.sleep` |
+| **Test Independence** | Each test can run standalone — no order dependency |
+| **Meaningful Assertions** | Every assertion includes descriptive error messages |
+| **Test Grouping** | `@Test(groups = {"smoke", "regression"})` for selective execution |
+| **Config Externalization** | All URLs, credentials in `test.properties` — not in code |
+| **CI-Ready** | Headless mode auto-enabled in CI via environment variable |
+
+---
+
+## 📸 Screenshots & CI Evidence
+
+### ✅ GitHub Actions — CI Pipeline (PASSED)
+
+![GitHub Actions CI Pipeline Run](docs/screenshots/github_actions_run.jpg)
+
+> Every push to `main` triggers the full test suite automatically. All steps — API Tests, Admin UI, Storefront UI, Newman — run sequentially and deploy the Allure Report to GitHub Pages.
+
+---
+
+### 📊 Allure Report — Dashboard Overview
+
+![Allure Report Dashboard](docs/screenshots/allure_dashboard.jpg)
+
+> Consolidated report from **163 test cases** across REST Assured, Selenium, and Newman — displayed as a single unified Allure Report.
+
+---
+
+### 🔍 Allure Report — Test Suite Detail
+
+![Allure Report Suites Detail](docs/screenshots/allure_suites.jpg)
+
+> Drill-down view showing individual test cases with step-by-step execution trace, status badges, duration, and request/response attachments for API tests.
+
+---
+
+## 📄 License
+
+This project is for **educational and portfolio purposes**.
+
+---
+
+<p align="center">
+  <b>Built with ❤️ for QA Automation Learning</b><br/>
+  <sub>Java · Selenium · REST Assured · TestNG · Allure · GitHub Actions</sub>
+</p>
