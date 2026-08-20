@@ -32,3 +32,17 @@ page.load.timeout=30
 # Screenshot
 screenshot.on.fail=true
 screenshot.dir=target/screenshots
+
+# ========================================================
+# API Testing (REST Assured) — Medusa Backend API
+# ========================================================
+# Base URL của Medusa backend API (không có trailing slash)
+api.base.url=https://your-medusa-backend-url.com
+
+# Publishable API Key — lấy từ Medusa Admin > Settings > API Keys
+# Cần thiết cho Storefront API calls (header: x-publishable-api-key)
+api.publishable.key=pk_your_publishable_key_here
+
+# API request timeout (ms)
+api.timeout.ms=10000
+

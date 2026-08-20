@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<!--
+    testng-api.xml — Suite chạy riêng tầng API Tests (REST Assured)
+    Chạy bằng: mvn test -DsuiteFile=testng-api.xml -pl selenium-java
+    Hoặc:      mvn test -DsuiteFile=testng-api.xml (từ trong thư mục selenium-java)
+-->
+<suite name="Medusa API Test Suite" verbose="1" parallel="classes" thread-count="2">
+
+    <listeners>
+        <!-- Allure TestNG listener — sinh báo cáo allure-results -->
+        <listener class-name="io.qameta.allure.testng.AllureTestNg"/>
+    </listeners>
+
+    <!-- ====================================================== -->
+    <!-- Storefront API Tests                                     -->
+    <!-- ====================================================== -->
+    <test name="Storefront API — Authentication" preserve-order="true">
+        <groups>
+            <run>
+                <include name="api"/>
+                <include name="storefront"/>
+                <include name="auth"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.medusa.automation.tests.api.storefront.StorefrontAuthApiTest"/>
+        </classes>
+    </test>
+
+    <test name="Storefront API — Cart &amp; Checkout" preserve-order="true">
+        <groups>
+            <run>
+                <include name="api"/>
+                <include name="storefront"/>
+                <include name="cart"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.medusa.automation.tests.api.storefront.StorefrontCartApiTest"/>
+        </classes>
+    </test>
+
+    <test name="Storefront API — Orders" preserve-order="true">
+        <groups>
+            <run>
+                <include name="api"/>
+                <include name="storefront"/>
+                <include name="orders"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.medusa.automation.tests.api.storefront.StorefrontOrderApiTest"/>
+        </classes>
+    </test>
+
+    <!-- ====================================================== -->
+    <!-- Admin API Tests                                          -->
+    <!-- ====================================================== -->
+    <test name="Admin API — Authentication" preserve-order="true">
+        <groups>
+            <run>
+                <include name="api"/>
+                <include name="admin"/>
+                <include name="auth"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.medusa.automation.tests.api.admin.AdminAuthApiTest"/>
+        </classes>
+    </test>
+
+    <test name="Admin API — Orders" preserve-order="true">
+        <groups>
+            <run>
+                <include name="api"/>
+                <include name="admin"/>
+                <include name="orders"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.medusa.automation.tests.api.admin.AdminOrderApiTest"/>
+        </classes>
+    </test>
+    <test name="Admin API — Products" preserve-order="true">
+        <groups>
+            <run>
+                <include name="api"/>
+                <include name="admin"/>
+                <include name="products"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.medusa.automation.tests.api.admin.AdminProductApiTest"/>
+        </classes>
+    </test>
+
+</suite>

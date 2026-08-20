@@ -67,6 +67,35 @@ public class ConfigReader {
         return get("browser", "chrome");
     }
 
+    // ====================================================
+    // API Testing Configuration (REST Assured)
+    // ====================================================
+
+    /**
+     * Base URL cho Medusa Backend API (REST Assured baseURI)
+     * Đọc từ key: api.base.url
+     */
+    public String getApiBaseUrl() {
+        return getRequired("api.base.url");
+    }
+
+    /**
+     * Publishable API Key cho Storefront API
+     * Đọc từ key: api.publishable.key
+     * Dùng trong header: x-publishable-api-key
+     */
+    public String getPublishableKey() {
+        return get("api.publishable.key", "");
+    }
+
+    /**
+     * API request timeout tính bằng milliseconds
+     * Đọc từ key: api.timeout.ms (default: 10000ms)
+     */
+    public int getApiTimeoutMs() {
+        return Integer.parseInt(get("api.timeout.ms", "10000"));
+    }
+
     public boolean isHeadless() {
         return Boolean.parseBoolean(get("headless", "false"));
     }
