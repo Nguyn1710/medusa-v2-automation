@@ -96,4 +96,17 @@
         </classes>
     </test>
 
+    <test name="Admin API — Customers" preserve-order="true">
+        <groups>
+            <run>
+                <include name="api"/>
+                <include name="admin"/>
+                <include name="customers"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.medusa.automation.tests.api.admin.AdminCustomerApiTest"/>
+        </classes>
+    </test>
+
 </suite>
