@@ -27,7 +27,13 @@ public class DriverFactory {
     public static WebDriver createDriver() {
         ConfigReader config = ConfigReader.getInstance();
         String browser = config.getBrowser().toLowerCase();
-        boolean headless = config.isHeadless();
+
+        // Auto-force headless khi chạy trên CI (GitHub Actions set CI=true tự động)
+        boolean isCI = "true".equalsIgnoreCase(System.getenv("CI"));
+        boolean headless = isCI || config.isHeadless();
+        if (isCI) {
+            log.info("CI environment detected (CI=true) — forcing headless mode");
+        }
 
         WebDriver driver;
         switch (browser) {

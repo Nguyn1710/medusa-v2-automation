@@ -1,9 +1,19 @@
-# 🧪 Medusa v2 API Automation Framework
+# 🧪 Medusa v2 Automation Framework
+
+[![CI — Automation Tests](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/ci.yml)
+[![Allure Report](https://img.shields.io/badge/Allure-Report-orange?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0tMSAxNEg5VjhIMTF2OHptNSAwSDEzdi00aDN2NHptMC02SDEzVjhIMTd2MnoiLz48L3N2Zz4=)](https://YOUR_USERNAME.github.io/YOUR_REPO/)
+[![Java](https://img.shields.io/badge/Java-11-orange?logo=openjdk)](https://openjdk.org/projects/jdk/11/)
+[![Selenium](https://img.shields.io/badge/Selenium-4.23-43B02A?logo=selenium)](https://www.selenium.dev/)
+[![TestNG](https://img.shields.io/badge/TestNG-7.10-red)](https://testng.org/)
+[![Allure](https://img.shields.io/badge/Allure-2.28-orange)](https://allurereport.org/)
+
+> ⚠️ **Thay `YOUR_USERNAME/YOUR_REPO`** trong các badge phía trên bằng GitHub username/repo thực của bạn sau khi push lên GitHub.
 
 > **Automation test suite cho Medusa v2 E-Commerce Platform**  
-> Java 11 · REST Assured 5.4 · TestNG 7.10 · Allure Report 2.28
+> Java 11 · Selenium 4.23 · REST Assured 5.4 · TestNG 7.10 · Allure Report 2.28 · Newman
 
 ---
+
 
 ## 📌 Tổng Quan
 

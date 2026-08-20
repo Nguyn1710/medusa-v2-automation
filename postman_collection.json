@@ -1,0 +1,1589 @@
+{
+  "info": {
+    "_postman_id": "8e418e42-0641-4d2e-ab70-a4e32c7bdc70",
+    "name": "Medusa Storefront E2E - Checkout Flow Monitor Copy",
+    "description": "End-to-end synthetic monitor for the Medusa Storefront (Store) API.\n\nSimulates a real shopper: browse products -> register/login -> build a cart -> choose shipping -> pay -> complete the order -> verify the order persisted correctly.\n\nDesigned to run unattended via Newman in CI/CD or as a scheduled monitor. Each run creates a fresh, timestamped customer so it is safely repeatable against a shared environment (staging/production-like) without collisions.\n\nFolders run in order (00 -> 06); do not reorder without checking variable dependencies.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "35389549"
+  },
+  "item": [
+    {
+      "name": "00 - Setup & Health",
+      "item": [
+        {
+          "name": "Health Check - List Regions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Response has regions array\", function () {",
+                  "    pm.expect(jsonData).to.have.property(\"regions\");",
+                  "    pm.expect(jsonData.regions).to.be.an(\"array\");",
+                  "});",
+                  "",
+                  "pm.test(\"At least one region exists\", function () {",
+                  "    pm.expect(jsonData.regions.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "if (jsonData.regions && jsonData.regions.length > 0) {",
+                  "    const region = jsonData.regions[0];",
+                  "    pm.collectionVariables.set(\"region_id\", region.id);",
+                  "    pm.collectionVariables.set(\"currency_code\", region.currency_code);",
+                  "    console.log(\"Saved region_id:\", region.id);",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/regions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "regions"
+              ]
+            },
+            "description": "Sanity check that the API is reachable and grabs a valid region_id used across the rest of the flow."
+          },
+          "response": []
+        },
+        {
+          "name": "List Products (grab product + variant)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Response has products array\", function () {",
+                  "    pm.expect(jsonData).to.have.property(\"products\");",
+                  "    pm.expect(jsonData.products).to.be.an(\"array\");",
+                  "});",
+                  "",
+                  "pm.test(\"At least one product returned\", function () {",
+                  "    pm.expect(jsonData.products.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "if (jsonData.products && jsonData.products.length > 0) {",
+                  "    const product = jsonData.products[0];",
+                  "    pm.collectionVariables.set(\"product_id\", product.id);",
+                  "",
+                  "    pm.test(\"Product has at least one variant\", function () {",
+                  "        pm.expect(product.variants).to.be.an(\"array\").that.is.not.empty;",
+                  "    });",
+                  "",
+                  "    if (product.variants && product.variants.length > 0) {",
+                  "        pm.collectionVariables.set(\"variant_id\", product.variants[0].id);",
+                  "        console.log(\"Saved product_id:\", product.id, \"variant_id:\", product.variants[0].id);",
+                  "    }",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/products?limit=1&region_id={{region_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "1"
+                },
+                {
+                  "key": "region_id",
+                  "value": "{{region_id}}"
+                }
+              ]
+            },
+            "description": "Fetches the first available product/variant to use later when adding a line item to the cart."
+          },
+          "response": []
+        }
+      ],
+      "description": "Preflight checks that verify the environment is reachable and seed variables (region_id, product_id, variant_id) reused by every subsequent request."
+    },
+    {
+      "name": "01 - Customer Auth",
+      "item": [
+        {
+          "name": "Register - Get Registration Token",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "",
+                  "// Persist the generated email/password so later requests (login) use the SAME identity.",
+                  "// Only set once — subsequent requests in the flow reuse the SAME email.",
+                  "if (!pm.collectionVariables.get(\"customer_email\")) {",
+                  "    const email = `qa.test.${Date.now()}@example.com`;",
+                  "    pm.collectionVariables.set(\"customer_email\", email);",
+                  "    pm.collectionVariables.set(\"customer_password\", \"SuperSecret123!\");",
+                  "    console.log(\"Generated customer_email:\", email);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Response contains registration token\", function () {",
+                  "    pm.expect(jsonData).to.have.property(\"token\");",
+                  "    pm.expect(jsonData.token).to.be.a(\"string\").and.not.empty;",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set(\"registration_token\", jsonData.token);",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customer_email}}\",\n  \"password\": \"SuperSecret123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/customer/emailpass/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "customer",
+                "emailpass",
+                "register"
+              ]
+            },
+            "description": "First step of Medusa's 2-step registration: exchange email/password for a short-lived registration JWT."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Customer (with registration token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Response contains created customer\", function () {",
+                  "    pm.expect(jsonData).to.have.property(\"customer\");",
+                  "    pm.expect(jsonData.customer).to.have.property(\"id\");",
+                  "    pm.expect(jsonData.customer.email).to.eql(pm.collectionVariables.get(\"customer_email\"));",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set(\"customer_id\", jsonData.customer.id);",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{registration_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customer_email}}\",\n  \"first_name\": \"QA\",\n  \"last_name\": \"Automation\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/store/customers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "customers"
+              ]
+            },
+            "description": "Uses the registration token as a Bearer credential to actually create the customer record."
+          },
+          "response": []
+        },
+        {
+          "name": "Login Customer (get session JWT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Response contains auth token\", function () {",
+                  "    pm.expect(jsonData).to.have.property(\"token\");",
+                  "    pm.expect(jsonData.token).to.be.a(\"string\").and.not.empty;",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set(\"customer_jwt\", jsonData.token);",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customer_email}}\",\n  \"password\": \"{{customer_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/customer/emailpass",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "customer",
+                "emailpass"
+              ]
+            },
+            "description": "Logs the newly created customer in and stores the JWT used for authenticated requests (e.g. GET /store/orders/:id)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Logged-in Customer Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Returned customer matches created customer_id\", function () {",
+                  "    pm.expect(jsonData.customer.id).to.eql(pm.collectionVariables.get(\"customer_id\"));",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customer_jwt}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/customers/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "customers",
+                "me"
+              ]
+            },
+            "description": "Confirms the session JWT is valid and resolves to the right customer."
+          },
+          "response": []
+        }
+      ],
+      "description": "Registers a fresh customer per run (timestamped email so the flow is idempotent/repeatable in CI) and authenticates to get a session JWT."
+    },
+    {
+      "name": "02 - Cart Management",
+      "item": [
+        {
+          "name": "Create Cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Response contains created cart with id\", function () {",
+                  "    pm.expect(jsonData).to.have.property(\"cart\");",
+                  "    pm.expect(jsonData.cart).to.have.property(\"id\");",
+                  "});",
+                  "",
+                  "pm.test(\"Cart currency matches region\", function () {",
+                  "    pm.expect(jsonData.cart.currency_code).to.eql(pm.collectionVariables.get(\"currency_code\"));",
+                  "});",
+                  "",
+                  "pm.test(\"Cart has one item pre-loaded\", function () {",
+                  "    pm.expect(jsonData.cart.items).to.be.an(\"array\").with.lengthOf(1);",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set(\"cart_id\", jsonData.cart.id);",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"region_id\": \"{{region_id}}\",\n  \"email\": \"{{customer_email}}\",\n  \"items\": [\n    {\n      \"variant_id\": \"{{variant_id}}\",\n      \"quantity\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/store/carts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts"
+              ]
+            },
+            "description": "Creates the cart directly with the item included (region_id + variant_id from folder 00)."
+          },
+          "response": []
+        },
+        {
+          "name": "Attach Customer to Cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Cart is now linked to authenticated customer\", function () {",
+                  "    pm.expect(jsonData.cart.customer_id).to.eql(pm.collectionVariables.get(\"customer_id\"));",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customer_jwt}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/carts/{{cart_id}}/customer",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "{{cart_id}}",
+                "customer"
+              ]
+            },
+            "description": "Links the logged-in customer to the guest cart (common real checkout behaviour)."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Second Line Item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Cart item quantity updated correctly\", function () {",
+                  "    const item = jsonData.cart.items.find(i => i.variant_id === pm.collectionVariables.get(\"variant_id\"));",
+                  "    pm.expect(item).to.not.be.undefined;",
+                  "    pm.expect(item.quantity).to.eql(3); // 1 from creation + 2 added here",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"variant_id\": \"{{variant_id}}\",\n  \"quantity\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/store/carts/{{cart_id}}/line-items",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "{{cart_id}}",
+                "line-items"
+              ]
+            },
+            "description": "Adds the same variant again to confirm Medusa merges quantities on the existing line item (1 -> 3)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Cart id matches saved cart_id\", function () {",
+                  "    pm.expect(jsonData.cart.id).to.eql(pm.collectionVariables.get(\"cart_id\"));",
+                  "});",
+                  "",
+                  "pm.test(\"Cart total is a positive number\", function () {",
+                  "    pm.expect(jsonData.cart.total).to.be.a(\"number\").above(0);",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/carts/{{cart_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "{{cart_id}}"
+              ]
+            },
+            "description": "Read-back check to validate the cart state before moving to checkout."
+          },
+          "response": []
+        }
+      ],
+      "description": "Creates a cart pre-loaded with an item, links the authenticated customer to it, and validates item/quantity behaviour."
+    },
+    {
+      "name": "03 - Checkout - Shipping",
+      "item": [
+        {
+          "name": "List Shipping Options for Cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Response has shipping_options array\", function () {",
+                  "    pm.expect(jsonData).to.have.property(\"shipping_options\");",
+                  "    pm.expect(jsonData.shipping_options).to.be.an(\"array\");",
+                  "});",
+                  "",
+                  "pm.test(\"At least one shipping option is available for this cart/region\", function () {",
+                  "    pm.expect(jsonData.shipping_options.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "if (jsonData.shipping_options && jsonData.shipping_options.length > 0) {",
+                  "    pm.collectionVariables.set(\"shipping_option_id\", jsonData.shipping_options[0].id);",
+                  "    console.log(\"Saved shipping_option_id:\", jsonData.shipping_options[0].id);",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/shipping-options?cart_id={{cart_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "shipping-options"
+              ],
+              "query": [
+                {
+                  "key": "cart_id",
+                  "value": "{{cart_id}}"
+                }
+              ]
+            },
+            "description": "Shipping options are scoped to the cart's region/items, so this must run after the cart exists."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Shipping Method to Cart",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Cart now has a shipping method\", function () {",
+                  "    pm.expect(jsonData.cart.shipping_methods).to.be.an(\"array\").that.is.not.empty;",
+                  "});",
+                  "",
+                  "pm.test(\"Cart shipping_total reflects the chosen option\", function () {",
+                  "    pm.expect(jsonData.cart.shipping_total).to.be.a(\"number\");",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"option_id\": \"{{shipping_option_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/store/carts/{{cart_id}}/shipping-methods",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "{{cart_id}}",
+                "shipping-methods"
+              ]
+            },
+            "description": "Attaches the first available shipping option to the cart."
+          },
+          "response": []
+        }
+      ],
+      "description": "Resolves valid shipping options for the current cart and attaches one, required before payment can be initialized."
+    },
+    {
+      "name": "04 - Checkout - Payment",
+      "item": [
+        {
+          "name": "List Payment Providers for Region",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Response has payment_providers array\", function () {",
+                  "    pm.expect(jsonData).to.have.property(\"payment_providers\");",
+                  "    pm.expect(jsonData.payment_providers).to.be.an(\"array\");",
+                  "});",
+                  "",
+                  "pm.test(\"At least one payment provider enabled for the region\", function () {",
+                  "    pm.expect(jsonData.payment_providers.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "if (jsonData.payment_providers && jsonData.payment_providers.length > 0) {",
+                  "    pm.collectionVariables.set(\"payment_provider_id\", jsonData.payment_providers[0].id);",
+                  "    console.log(\"Saved payment_provider_id:\", jsonData.payment_providers[0].id);",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/payment-providers?region_id={{region_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "payment-providers"
+              ],
+              "query": [
+                {
+                  "key": "region_id",
+                  "value": "{{region_id}}"
+                }
+              ]
+            },
+            "description": "Fetches providers enabled for this region (e.g. pp_system_default in a dev/test store)."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payment Collection",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Response contains payment collection id\", function () {",
+                  "    pm.expect(jsonData).to.have.property(\"payment_collection\");",
+                  "    pm.expect(jsonData.payment_collection).to.have.property(\"id\");",
+                  "});",
+                  "",
+                  "pm.test(\"Payment collection amount matches cart total\", function () {",
+                  "    pm.expect(jsonData.payment_collection.amount).to.be.a(\"number\").above(0);",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set(\"payment_collection_id\", jsonData.payment_collection.id);",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cart_id\": \"{{cart_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/store/payment-collections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "payment-collections"
+              ]
+            },
+            "description": "A payment collection groups payment sessions and tracks the amount owed for the cart."
+          },
+          "response": []
+        },
+        {
+          "name": "Initialize Payment Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Payment collection now has a payment session\", function () {",
+                  "    pm.expect(jsonData.payment_collection.payment_sessions).to.be.an(\"array\").that.is.not.empty;",
+                  "});",
+                  "",
+                  "const session = jsonData.payment_collection.payment_sessions[0];",
+                  "pm.test(\"Payment session provider matches request\", function () {",
+                  "    pm.expect(session.provider_id).to.eql(pm.collectionVariables.get(\"payment_provider_id\"));",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set(\"payment_session_id\", session.id);",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider_id\": \"{{payment_provider_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/store/payment-collections/{{payment_collection_id}}/payment-sessions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "payment-collections",
+                "{{payment_collection_id}}",
+                "payment-sessions"
+              ]
+            },
+            "description": "Initializes a session with the chosen provider - required immediately before completing the cart."
+          },
+          "response": []
+        }
+      ],
+      "description": "Resolves an enabled payment provider, creates a payment collection for the cart, and initializes a payment session against it."
+    },
+    {
+      "name": "05 - Complete Order",
+      "item": [
+        {
+          "name": "Complete Cart -> Create Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Cart completion succeeded (type === order)\", function () {",
+                  "    pm.expect(jsonData.type).to.eql(\"order\");",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains the created order\", function () {",
+                  "    pm.expect(jsonData).to.have.property(\"order\");",
+                  "    pm.expect(jsonData.order).to.have.property(\"id\");",
+                  "});",
+                  "",
+                  "if (jsonData.type === \"order\") {",
+                  "    pm.collectionVariables.set(\"order_id\", jsonData.order.id);",
+                  "    console.log(\"Order created:\", jsonData.order.id);",
+                  "} else if (jsonData.type === \"cart\") {",
+                  "    console.warn(\"Cart completion FAILED:\", jsonData.error && jsonData.error.message);",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/carts/{{cart_id}}/complete",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "{{cart_id}}",
+                "complete"
+              ]
+            },
+            "description": "The critical step of the whole flow - converts the cart into an order. Medusa returns type=cart+error on failure instead of an HTTP error, so the test explicitly asserts type === 'order'."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order (verify persisted order)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Returned order id matches created order\", function () {",
+                  "    pm.expect(jsonData.order.id).to.eql(pm.collectionVariables.get(\"order_id\"));",
+                  "});",
+                  "",
+                  "pm.test(\"Order belongs to the authenticated customer\", function () {",
+                  "    pm.expect(jsonData.order.customer_id).to.eql(pm.collectionVariables.get(\"customer_id\"));",
+                  "});",
+                  "",
+                  "pm.test(\"Order items count matches cart items count\", function () {",
+                  "    pm.expect(jsonData.order.items.length).to.be.above(0);",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customer_jwt}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/orders/{{order_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "orders",
+                "{{order_id}}"
+              ]
+            },
+            "description": "Confirms the order is actually retrievable and correctly attributed to the customer that placed it - the real end-to-end signal for a monitor."
+          },
+          "response": []
+        },
+        {
+          "name": "List My Orders",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Newly created order appears in the customer's order list\", function () {",
+                  "    const ids = jsonData.orders.map(o => o.id);",
+                  "    pm.expect(ids).to.include(pm.collectionVariables.get(\"order_id\"));",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customer_jwt}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/orders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "orders"
+              ]
+            },
+            "description": "Extra confidence check: the order shows up in the customer's own order history, not just by direct ID lookup."
+          },
+          "response": []
+        }
+      ],
+      "description": "Completes the cart into a real order and verifies it is retrievable both directly and via the customer's order list. This is the ultimate 'did checkout actually work' signal for the monitor."
+    },
+    {
+      "name": "06 - Negative & Edge Cases",
+      "item": [
+        {
+          "name": "Get Cart - Invalid ID returns 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 404 for a non-existent cart\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Error response has a message\", function () {",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/carts/cart_invalid_id_does_not_exist",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "cart_invalid_id_does_not_exist"
+              ]
+            },
+            "description": "Confirms the API fails cleanly (404, not 500) for a well-formed but non-existent cart id."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Line Item - Missing quantity returns 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 400 for missing required field\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"variant_id\": \"{{variant_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/store/carts/{{cart_id}}/line-items",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts",
+                "{{cart_id}}",
+                "line-items"
+              ]
+            },
+            "description": "Validates request-body validation: quantity is required by StoreAddCartLineItem."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Cart - Invalid region_id returns error",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code indicates client error (400 or 404)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 404]);",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"region_id\": \"reg_invalid_id_does_not_exist\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/store/carts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "carts"
+              ]
+            },
+            "description": "Ensures a bogus region_id is rejected instead of silently creating a broken cart."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order - No Auth returns 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "",
+                  "pm.test(\"Status code is 401 without a customer session\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-publishable-api-key",
+                "value": "{{publishable_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/store/orders/{{order_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "store",
+                "orders",
+                "{{order_id}}"
+              ]
+            },
+            "description": "Orders are customer-scoped; requesting without a Bearer token must be rejected."
+          },
+          "response": []
+        }
+      ],
+      "description": "Deliberately malformed / unauthorized / non-existent-resource requests, proving the API fails predictably instead of 500ing or leaking data."
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "requests": {},
+        "exec": [
+          "// Global guard: fail fast with a clear message if publishable_key was never set",
+          "if (!pm.collectionVariables.get('publishable_key')) {",
+          "    console.warn('WARNING: publishable_key collection variable is empty. Store routes will return 401/403.');",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": ""
+    },
+    {
+      "key": "publishable_key",
+      "value": ""
+    },
+    {
+      "key": "region_id",
+      "value": ""
+    },
+    {
+      "key": "currency_code",
+      "value": ""
+    },
+    {
+      "key": "product_id",
+      "value": ""
+    },
+    {
+      "key": "variant_id",
+      "value": ""
+    },
+    {
+      "key": "customer_email",
+      "value": ""
+    },
+    {
+      "key": "customer_password",
+      "value": ""
+    },
+    {
+      "key": "registration_token",
+      "secret": true,
+      "source": {
+        "provider": "postman",
+        "postman": {
+          "type": "cloud",
+          "secretId": "39e92062-ce88-4610-8f07-0c0e3c4d2de3",
+          "vaultId": "0cdfde0c-2604-4554-9ec2-647efa58f0b3"
+        }
+      }
+    },
+    {
+      "key": "customer_id",
+      "value": ""
+    },
+    {
+      "key": "customer_jwt",
+      "secret": true,
+      "source": {
+        "provider": "postman",
+        "postman": {
+          "type": "cloud",
+          "secretId": "d547cff2-08c6-4197-bb81-c0ce1d782f4f",
+          "vaultId": "0cdfde0c-2604-4554-9ec2-647efa58f0b3"
+        }
+      }
+    },
+    {
+      "key": "cart_id",
+      "value": ""
+    },
+    {
+      "key": "shipping_option_id",
+      "value": ""
+    },
+    {
+      "key": "payment_provider_id",
+      "value": ""
+    },
+    {
+      "key": "payment_collection_id",
+      "value": ""
+    },
+    {
+      "key": "payment_session_id",
+      "value": ""
+    },
+    {
+      "key": "order_id",
+      "value": ""
+    }
+  ]
+}

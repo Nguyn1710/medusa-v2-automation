@@ -2,6 +2,11 @@
 
 <suite name="StoreFront Test Suite" verbose="1" parallel="false">
 
+    <listeners>
+        <!-- Allure TestNG listener — sinh báo cáo allure-results -->
+        <listener class-name="io.qameta.allure.testng.AllureTestNg"/>
+    </listeners>
+
     <parameter name="browser" value="chrome"/>
 
     <!-- ── SMOKE: Tests chạy nhanh, verify core functionality ── -->

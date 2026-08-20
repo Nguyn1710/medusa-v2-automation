@@ -2,51 +2,85 @@
 # Medusa Automation — .gitignore
 # ========================================
 
-# Maven build output
+# ── Maven build output ──────────────────
 target/
 
-# IntelliJ IDEA
+# ── IntelliJ IDEA ───────────────────────
 .idea/
 *.iml
 *.iws
 out/
 
-# Eclipse
+# ── Eclipse ─────────────────────────────
 .project
 .classpath
 .settings/
 
-# VS Code
+# ── VS Code ─────────────────────────────
 .vscode/
 
-# OS generated files
+# ── OS generated files ──────────────────
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Credentials — KHÔNG BAO GIỜ commit file này
+# ── CREDENTIALS — KHÔNG BAO GIỜ COMMIT ──
+# File chứa thông tin nhạy cảm (URL, email, password, API keys)
 config/test.properties
 
-# Logs
+# Nếu lỡ tay để .env ở đây
+.env
+.env.local
+.env.*.local
+
+# ── Logs ────────────────────────────────
 *.log
+logs/
 chromedriver.log
 geckodriver.log
+log4j*.xml.bak
 
-# Allure local cache
+# ── Allure local cache & reports ────────
+# .allure/ là CLI cache khi dùng allure serve local
 .allure/
-
-# Reports (sinh ra khi chạy test)
+# allure-results & allure-report được sinh ra khi test chạy
+# KHÔNG commit — CI sẽ generate và deploy lên GitHub Pages
 allure-results/
 allure-report/
+
+# ── TestNG / Surefire reports ───────────
 test-output/
+surefire-reports/
 
-# Screenshots (sinh ra khi test fail)
+# ── Screenshots (sinh ra khi test fail) ─
 target/screenshots/
+screenshots/
 
-# Excel temp lock files
+# ── Newman output ───────────────────────
+newman/
+newman-results/
+newman-environment.json
+
+# ── Node.js ─────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# ── Temp files ──────────────────────────
+*.tmp
+*.bak
+*.swp
 ~$*.xlsx
 ~$*.xls
 
-# Environment files
-.env
-.env.local
+# ── CI generated files ──────────────────
+# allure-2.28.0.tgz (nếu lỡ download vào workspace)
+*.tgz
+allure-2.*/
+
+# ── GitHub Actions (KHÔNG gitignore — cần commit) ──
+# .github/workflows/*.yml → KEEP in repo
+
+# ── Package lock (node) ─────────────────
+# package-lock.json không cần commit nếu không dùng npm trong project
+package-lock.json

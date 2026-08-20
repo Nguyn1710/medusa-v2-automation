@@ -8,8 +8,23 @@ import java.io.IOException;
 import java.util.Properties;
 
 /**
- * Singleton ConfigReader — đọc test.properties từ config/
- * Không hardcode bất kỳ credentials hay URL nào trong code
+ * Singleton ConfigReader — đọc cấu hình theo thứ tự ưu tiên:
+ *   1. Environment Variables  (dùng trên CI/CD)
+ *   2. config/test.properties (dùng khi chạy local)
+ *
+ * Mapping Environment Variables → Property Keys:
+ *   BASE_URL               → base.url
+ *   STOREFRONT_URL         → storefront.url
+ *   STOREFRONT_BASE_PATH   → storefront.base.path
+ *   ADMIN_EMAIL            → admin.email
+ *   ADMIN_PASSWORD         → admin.password
+ *   CUSTOMER_EMAIL         → storefront.customer.email
+ *   CUSTOMER_PASSWORD      → storefront.customer.password
+ *   API_BASE_URL           → api.base.url
+ *   API_PUBLISHABLE_KEY    → api.publishable.key
+ *   API_TIMEOUT_MS         → api.timeout.ms
+ *   BROWSER                → browser
+ *   HEADLESS               → headless
  */
 public class ConfigReader {
 
@@ -20,11 +35,38 @@ public class ConfigReader {
 
     private ConfigReader() {
         properties = new Properties();
+
+        // Bước 1: Thử load từ file (local dev)
         try (FileInputStream fis = new FileInputStream(CONFIG_PATH)) {
             properties.load(fis);
-            log.info("Config loaded from: {}", CONFIG_PATH);
+            log.info("Config loaded from file: {}", CONFIG_PATH);
         } catch (IOException e) {
-            throw new RuntimeException("Không thể đọc config file: " + CONFIG_PATH, e);
+            log.warn("config/test.properties không tìm thấy — sẽ dùng Environment Variables (CI mode)");
+        }
+
+        // Bước 2: Override/bổ sung từ Environment Variables (CI takes precedence)
+        overrideFromEnv("BASE_URL",             "base.url");
+        overrideFromEnv("STOREFRONT_URL",        "storefront.url");
+        overrideFromEnv("STOREFRONT_BASE_PATH",  "storefront.base.path");
+        overrideFromEnv("ADMIN_EMAIL",           "admin.email");
+        overrideFromEnv("ADMIN_PASSWORD",        "admin.password");
+        overrideFromEnv("CUSTOMER_EMAIL",        "storefront.customer.email");
+        overrideFromEnv("CUSTOMER_PASSWORD",     "storefront.customer.password");
+        overrideFromEnv("API_BASE_URL",          "api.base.url");
+        overrideFromEnv("API_PUBLISHABLE_KEY",   "api.publishable.key");
+        overrideFromEnv("API_TIMEOUT_MS",        "api.timeout.ms");
+        overrideFromEnv("BROWSER",               "browser");
+        overrideFromEnv("HEADLESS",              "headless");
+    }
+
+    /**
+     * Nếu environment variable tồn tại và không rỗng → ghi đè giá trị trong properties.
+     */
+    private void overrideFromEnv(String envVarName, String propertyKey) {
+        String envValue = System.getenv(envVarName);
+        if (envValue != null && !envValue.trim().isEmpty()) {
+            properties.setProperty(propertyKey, envValue.trim());
+            log.debug("Config override từ env: {} → {}", envVarName, propertyKey);
         }
     }
 
@@ -73,7 +115,7 @@ public class ConfigReader {
 
     /**
      * Base URL cho Medusa Backend API (REST Assured baseURI)
-     * Đọc từ key: api.base.url
+     * Đọc từ key: api.base.url hoặc env var: API_BASE_URL
      */
     public String getApiBaseUrl() {
         return getRequired("api.base.url");
@@ -81,7 +123,7 @@ public class ConfigReader {
 
     /**
      * Publishable API Key cho Storefront API
-     * Đọc từ key: api.publishable.key
+     * Đọc từ key: api.publishable.key hoặc env var: API_PUBLISHABLE_KEY
      * Dùng trong header: x-publishable-api-key
      */
     public String getPublishableKey() {
@@ -119,7 +161,10 @@ public class ConfigReader {
     private String getRequired(String key) {
         String value = properties.getProperty(key);
         if (value == null || value.trim().isEmpty()) {
-            throw new RuntimeException("Property bắt buộc không tìm thấy trong config: " + key);
+            throw new RuntimeException(
+                "Property bắt buộc không tìm thấy: '" + key + "'. " +
+                "Kiểm tra config/test.properties hoặc set Environment Variable tương ứng."
+            );
         }
         return value.trim();
     }

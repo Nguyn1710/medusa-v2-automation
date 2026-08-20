@@ -2,6 +2,11 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <suite name="Medusa Admin Auth Suite" verbose="1" parallel="false">
 
+    <listeners>
+        <!-- Allure TestNG listener — sinh báo cáo allure-results -->
+        <listener class-name="io.qameta.allure.testng.AllureTestNg"/>
+    </listeners>
+
     <!-- ===== SMOKE SUITE ===== -->
     <test name="Smoke Tests">
         <groups>
